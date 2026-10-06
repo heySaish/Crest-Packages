@@ -100,7 +100,10 @@ REQUIRE_GPG_SIGNING="${REQUIRE_GPG_SIGNING:-0}"
 if command -v gpg >/dev/null 2>&1 && ( gpg --list-secret-keys 2>/dev/null | grep -q "sec" || [ -n "${GPG_KEY_ID:-}" ] ); then
     echo "==> Signing APT repository Release file..."
     
-    SIGN_ARGS=("--batch" "--yes")
+    SIGN_ARGS=("--batch" "--yes" "--pinentry-mode" "loopback")
+    if [ -n "${GPG_PASSPHRASE:-}" ]; then
+        SIGN_ARGS+=("--passphrase" "${GPG_PASSPHRASE}")
+    fi
     if [ -n "${GPG_KEY_ID:-}" ]; then
         SIGN_ARGS+=("--default-key" "${GPG_KEY_ID}")
     fi
