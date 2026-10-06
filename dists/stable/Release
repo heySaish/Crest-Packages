@@ -1,0 +1,13 @@
+Origin: Crest Debian
+Label: Crest Debian
+Suite: stable
+Codename: stable
+Components: main
+Architectures: arm64
+Date: Tue, 06 Oct 2026 04:28:37 +0000
+MD5Sum:
+ d41d8cd98f00b204e9800998ecf8427e 0 main/binary-arm64/Packages
+ 95bb0d6b8c586c6350f87b7dc38af0e4 29 main/binary-arm64/Packages.gz
+SHA256:
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 0 main/binary-arm64/Packages
+ 58b690c4066446f8d3d50775fbe9718ad0d202d434d49911c405b5c71ae60920 29 main/binary-arm64/Packages.gz

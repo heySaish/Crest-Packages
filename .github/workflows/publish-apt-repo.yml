@@ -1,0 +1,75 @@
+name: Publish Crest APT Repository
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Import GPG Key, Sign Repository & Verify
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          REQUIRE_GPG_SIGNING: "1"
+        run: |
+          set +x
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "::error::GPG_PRIVATE_KEY secret is missing! Production deployments require GPG_PRIVATE_KEY in GitHub Repository Secrets."
+            exit 1
+          fi
+
+          # Isolated temporary GPG workspace
+          GNUPGHOME="$(mktemp -d)"
+          export GNUPGHOME
+          chmod 0700 "$GNUPGHOME"
+          trap 'rm -rf "$GNUPGHOME"' EXIT
+
+          echo "==> Importing production GPG key..."
+          if [ -n "$GPG_PASSPHRASE" ]; then
+            echo "$GPG_PRIVATE_KEY" | gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --import
+          else
+            echo "$GPG_PRIVATE_KEY" | gpg --batch --yes --import
+          fi
+
+          # Export production public keyring to crest-archive-keyring.gpg
+          gpg --batch --yes --export > crest-archive-keyring.gpg
+
+          echo "==> Generating APT repository metadata & signing..."
+          chmod +x scripts/generate-apt-repo.sh
+          bash scripts/generate-apt-repo.sh
+
+          echo "==> Verifying generated signatures..."
+          gpg --verify dists/stable/Release.gpg dists/stable/Release
+          gpg --verify dists/stable/InRelease
+          echo "==> Production GPG signature verification succeeded!"
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
